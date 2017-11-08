@@ -36,7 +36,7 @@ func (esCtx *Context) Search(searchString string) ([]eslogview.LogEntry, error) 
 		Index(esCtx.config.Index).
 		Query(query).
 		From(0).Size(logEntriesReqSize).
-		SortWithInfo(elastic.SortInfo{Field: "@timestamp", Ascending: true}).
+		SortWithInfo(elastic.SortInfo{Field: "@timestamp", Ascending: false}).
 		Do()
 
 	if err != nil {
