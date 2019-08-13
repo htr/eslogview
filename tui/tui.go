@@ -37,7 +37,7 @@ func (t *TUI) Run(queryString string) error {
 		log.Panicln(err)
 	}
 
-	t.g.Execute(func(*gocui.Gui) error {
+	t.g.Update(func(*gocui.Gui) error {
 		return t.showLogEntries(t.g, nil)
 	})
 
