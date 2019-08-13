@@ -63,6 +63,15 @@ func (t *TUI) Run(queryString string) error {
 			currentWindow.ScrollAmount(1)
 		case "k", "<Up>":
 			currentWindow.ScrollAmount(-1)
+		case "J", "<C-d>":
+			currentWindow.ScrollAmount(currentWindow.containerWidget.Rectangle.Dy() / 2)
+		case "K", "<C-u>":
+			currentWindow.ScrollAmount(-currentWindow.containerWidget.Rectangle.Dy() / 2)
+		case "<C-f>", "<PageDown>":
+			currentWindow.ScrollAmount(currentWindow.containerWidget.Rectangle.Dy())
+		case "<C-b>", "<PageUp>":
+			currentWindow.ScrollAmount(-currentWindow.containerWidget.Rectangle.Dy())
+
 		case "<Resize>":
 			payload := e.Payload.(ui.Resize)
 			if currentWindow != mainWindow {
