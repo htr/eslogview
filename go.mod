@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4
-	github.com/gizak/termui/v3 v3.1.0 // indirect
+	github.com/gizak/termui/v3 v3.1.0
 	github.com/jroimartin/gocui v0.4.0
 	github.com/mattn/go-runewidth v0.0.4
 	github.com/nsf/termbox-go v0.0.0-20190624072549-eeb6cd0a1762
