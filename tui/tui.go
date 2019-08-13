@@ -11,6 +11,15 @@ import (
 	"github.com/htr/eslogview/elasticsearch"
 )
 
+type FetchDirection int
+
+const (
+	pageSize = 200
+
+	FetchPrevious FetchDirection = 1
+	FetchNext     FetchDirection = 2
+)
+
 type TUI struct {
 	esCtx *elasticsearch.Context
 }
@@ -48,7 +57,7 @@ func (t *TUI) Run(queryString string) error {
 			}
 		case "<Enter>":
 			if currentWindow == mainWindow {
-				// currentWindow = t.newContextWindow(currentWindow.selectedEntry())
+				currentWindow = t.newContextWindow(currentWindow.selectedEntry())
 			}
 		case "j", "<Down>":
 			currentWindow.ScrollAmount(1)
@@ -82,10 +91,41 @@ func (t *TUI) newMainWindow(queryString string) *logentriesWindow {
 	return win
 }
 
+func (t *TUI) newContextWindow(firstEntry eslogview.LogEntry) *logentriesWindow {
+	entries, err := t.esCtx.LogEntryContext(firstEntry, pageSize)
+	if err != nil {
+		log.Fatalf("unable to fetch log entries: %v\n", err)
+	}
+
+	win := &logentriesWindow{}
+	win.logentries = entries
+	win.createWidgets()
+	win.fetchMore = func(baseEntry eslogview.LogEntry, direction FetchDirection) []eslogview.LogEntry {
+		fetchAmount := pageSize
+		if direction == FetchPrevious {
+			fetchAmount = -pageSize
+		}
+
+		// I probably shouldn't ignore this error
+		entries, _ := t.esCtx.LogEntryContext(baseEntry, fetchAmount)
+		if len(entries) == 0 {
+			return entries
+		}
+		if direction == FetchPrevious {
+			return entries[0 : len(entries)-1]
+		} else {
+			return entries[1:]
+		}
+	}
+
+	return win
+}
+
 type logentriesWindow struct {
 	containerWidget *ui.Grid
 	listWidget      *widgets.List
 	logentries      []eslogview.LogEntry
+	fetchMore       func(eslogview.LogEntry, FetchDirection) []eslogview.LogEntry
 }
 
 func (evWin *logentriesWindow) selectedEntry() eslogview.LogEntry {
@@ -93,6 +133,24 @@ func (evWin *logentriesWindow) selectedEntry() eslogview.LogEntry {
 }
 
 func (evWin *logentriesWindow) ScrollAmount(amount int) {
+	if evWin.fetchMore != nil &&
+		(evWin.listWidget.SelectedRow+amount > (len(evWin.logentries)-1) ||
+			evWin.listWidget.SelectedRow+amount < 0) {
+		selectedRow := evWin.listWidget.SelectedRow
+		if amount < 0 {
+			moreEntries := evWin.fetchMore(evWin.logentries[0], FetchPrevious)
+			evWin.logentries = append(moreEntries, evWin.logentries...)
+			selectedRow = selectedRow + len(moreEntries)
+		} else if amount > 0 {
+			moreEntries := evWin.fetchMore(evWin.logentries[len(evWin.logentries)-1], FetchNext)
+			evWin.logentries = append(evWin.logentries, moreEntries...)
+			selectedRow = selectedRow - len(moreEntries)
+		}
+
+		// I should be able to just reset the list' Rows, but lets do it quick and dirty for now
+		evWin.createWidgets()
+		evWin.listWidget.SelectedRow = selectedRow
+	}
 	evWin.listWidget.ScrollAmount(amount)
 }
 
