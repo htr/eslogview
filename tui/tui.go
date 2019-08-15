@@ -37,7 +37,11 @@ func (t *TUI) Run(queryString string) error {
 	defer ui.Close()
 
 	// create mainWindow
-	mainWindow := t.newMainWindow(queryString)
+	mainWindow, err := t.newMainWindow(queryString)
+	if err != nil {
+		ui.Close()
+		log.Fatalln(err)
+	}
 
 	currentWindow := mainWindow
 
@@ -87,17 +91,21 @@ func (t *TUI) Run(queryString string) error {
 	return nil
 }
 
-func (t *TUI) newMainWindow(queryString string) *logentriesWindow {
+func (t *TUI) newMainWindow(queryString string) (*logentriesWindow, error) {
 	entries, err := t.esCtx.Search(queryString)
 	if err != nil {
-		log.Fatalf("unable to fetch log entries: %v\n", err)
+		return nil, fmt.Errorf("Unable to fetch log entries: %v.\n", err)
+	}
+
+	if len(entries) == 0 {
+		return nil, fmt.Errorf("Unable to find any results.")
 	}
 
 	win := &logentriesWindow{}
 	win.logentries = entries
 	win.createWidgets()
 
-	return win
+	return win, nil
 }
 
 func (t *TUI) newContextWindow(firstEntry eslogview.LogEntry) *logentriesWindow {
