@@ -16,6 +16,11 @@ type Config struct {
 	Index               string   `yaml:"index"`
 	MessageCleanupRegex string   `yaml:"message-cleanup-regex"`
 	IgnoreBlankLogLines bool     `yaml:"ignore-blanks"`
+	FriendlyNamesCsv    string   `yaml:"friendly-names-csv"`
+	FriendlyNames       struct {
+		Csv                 string `yaml:"csv"`
+		ContextCleanupRegex string `yaml:"context-cleanup-regex"`
+	} `yaml:"friendly-names"`
 }
 
 func MustLoadConfig(conf io.Reader) Config {
