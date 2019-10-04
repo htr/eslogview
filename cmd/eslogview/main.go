@@ -20,6 +20,8 @@ var (
 
 	search            = app.Command("search", "Search for occurrences of a given query string")
 	searchQueryString = search.Arg("query-string", "query string/elasticsearch simple query").Required().String()
+	searchBefore      = search.Flag("before", "timestamp upper bound").String()
+	searchAfter       = search.Flag("after", "timestamp lower bound").String()
 
 	showContext           = app.Command("show-context", "Show context of a given log entry")
 	showContextAfter      = showContext.Flag("after-context", "Number of loglines to print after the selected logline").Short('A').Default("200").Int()
@@ -40,7 +42,7 @@ func main() {
 	case search.FullCommand():
 		esCtx, err := elasticsearch.NewContext(config)
 		panicIf(err)
-		logEntries, err := esCtx.Search(*searchQueryString)
+		logEntries, err := esCtx.Search(*searchQueryString, *searchBefore, *searchAfter)
 		panicIf(err)
 
 		w := &tabwriter.Writer{}

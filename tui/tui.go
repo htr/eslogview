@@ -92,7 +92,7 @@ func (t *TUI) Run(queryString string) error {
 }
 
 func (t *TUI) newMainWindow(queryString string) (*logentriesWindow, error) {
-	entries, err := t.esCtx.Search(queryString)
+	entries, err := t.esCtx.Search(queryString, "", "")
 	if err != nil {
 		return nil, fmt.Errorf("Unable to fetch log entries: %v.\n", err)
 	}

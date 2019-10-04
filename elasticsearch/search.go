@@ -27,10 +27,18 @@ func NewContext(config eslogview.Config) (*Context, error) {
 	return &Context{client: esclient, config: config}, nil
 }
 
-func (esCtx *Context) Search(searchString string) ([]eslogview.LogEntry, error) {
+func (esCtx *Context) Search(searchString string, before string, after string) ([]eslogview.LogEntry, error) {
 	logEntries := []eslogview.LogEntry{}
 
 	query := elastic.NewBoolQuery().Must(elastic.NewQueryStringQuery(searchString).AnalyzeWildcard(true))
+
+	if before != "" {
+		query = query.Must(elastic.NewRangeQuery(esCtx.config.TimestampField).To(before))
+	}
+
+	if after != "" {
+		query = query.Must(elastic.NewRangeQuery(esCtx.config.TimestampField).From(after))
+	}
 
 	searchResult, err := esCtx.client.Search().
 		Index(esCtx.config.Index).
