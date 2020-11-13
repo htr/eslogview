@@ -1,18 +1,19 @@
 package elasticsearch
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/htr/eslogview"
-	elastic "gopkg.in/olivere/elastic.v3"
+	"github.com/olivere/elastic/v7"
 )
 
 const logEntriesReqSize = 300
-const logEntriesCtxReqSize = 500
 
 type Context struct {
 	client *elastic.Client
@@ -20,7 +21,10 @@ type Context struct {
 }
 
 func NewContext(config eslogview.Config) (*Context, error) {
-	esclient, err := elastic.NewSimpleClient(elastic.SetURL("http://kibana.internal.digitalocean.com:9200"))
+	esclient, err := elastic.NewSimpleClient(
+		elastic.SetURL("http://logs.internal.digitalocean.com:9200"),
+		elastic.SetBasicAuth(
+			os.Getenv("ES_USERNAME"), os.Getenv("ES_PASSWORD")))
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +49,7 @@ func (esCtx *Context) Search(searchString string, before string, after string) (
 		Query(query).
 		From(0).Size(logEntriesReqSize).
 		SortWithInfo(elastic.SortInfo{Field: "@timestamp", Ascending: false}).
-		Do()
+		Do(context.Background())
 
 	if err != nil {
 		return logEntries, nil
@@ -59,7 +63,7 @@ func (esCtx *Context) LogEntryByID(ID string) (eslogview.LogEntry, error) {
 	searchResult, err := esCtx.client.Search().
 		Index(esCtx.config.Index).
 		Query(elastic.NewBoolQuery().Must(elastic.NewTermQuery("_id", ID))).
-		Do()
+		Do(context.Background())
 
 	if err != nil {
 		return eslogview.LogEntry{}, err
@@ -103,7 +107,7 @@ func (esCtx *Context) LogEntryContext(ev eslogview.LogEntry, timelineLength int)
 		Query(query).
 		Size(size).
 		SortWithInfo(sortInfo).
-		Do()
+		Do(context.Background())
 
 	if err != nil {
 		return []eslogview.LogEntry{}, err
@@ -118,7 +122,7 @@ func (esCtx *Context) logEntriesFromResult(searchResult *elastic.SearchResult) [
 
 	for _, hit := range searchResult.Hits.Hits {
 		source := map[string]interface{}{}
-		json.Unmarshal(*hit.Source, &source)
+		json.Unmarshal(hit.Source, &source)
 		ev := eslogview.LogEntry{}
 		ev.Message = re.ReplaceAllLiteralString(strings.TrimSpace(source[esCtx.config.MessageField].(string)), "")
 
